@@ -23,7 +23,7 @@ pythonpath = "."
 addopts = " -p no:warnings"
 
 [tool.ruff]
-line-length = 80
+line-length = 100
 extend-exclude = ['migrations']
 
 [tool.ruff.lint]
