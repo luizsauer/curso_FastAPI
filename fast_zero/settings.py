@@ -1,14 +1,17 @@
 # fast_zero\settings.py
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
     """
     Settings for the FastAPI application.
     This class uses Pydantic to manage configuration settings.
     """
+
     model_config = SettingsConfigDict(
-        env_file=".env",  # Load environment variables from a .env file
-        env_file_encoding="utf-8",   # Encoding for the .env file
-        case_sensitive=True)  # Environment variable names are case-sensitive
+        env_file='.env',  # Load environment variables from a .env file
+        env_file_encoding='utf-8',  # Encoding for the .env file
+        case_sensitive=True,
+    )  # Environment variable names are case-sensitive
 
     DATABASE_URL: str

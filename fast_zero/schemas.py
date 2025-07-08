@@ -1,7 +1,7 @@
 # fast_zero\schemas.py
 from datetime import time
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class Message(BaseModel):
@@ -14,14 +14,12 @@ class UserSchema(BaseModel):
     password: str
 
 
-class UserDB(UserSchema):
-    id: int = Field(default_factory=lambda: int(time.time()))
-
-
 class UserPublic(BaseModel):
     id: int = Field(default_factory=lambda: int(time.time()))
     username: str
     email: EmailStr
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserList(BaseModel):
