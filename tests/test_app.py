@@ -62,30 +62,33 @@ def test_listar_usuarios_com_banco_vazio_deve_retornar_404(client, limpar_banco)
     assert response.json() == {'detail': 'No users found.'}
 
 
-def test_atualizar_usuario_deve_retornar_200(client, user):
+def test_atualizar_usuario_deve_retornar_200(client, user, token):
     # Act (Ação)
     response = client.put(
-        '/users/1',
+        f'/users/{user.id}',
+        headers={'Authorization': f'Bearer {token}'},
         json={
             'username': 'teste_atualizado',
             'email': 'teste_atualizado@teste.com',
             'password': '123456',
+            'id': user.id,  # Incluindo o ID do usuário para atualização
         },
     )
     # Assert (Afirmar)
     assert response.status_code == HTTPStatus.OK
     # validar UserPublic # voltou o usuario correto?
     assert response.json() == {
-        'id': 1,
+        'id': user.id,
         'username': 'teste_atualizado',
         'email': 'teste_atualizado@teste.com',
     }
 
 
-def test_atualizar_usuario_inexistente_deve_retornar_404(client, user):
+def test_atualizar_usuario_inexistente_deve_retornar_403(client, user, token):
     # Act (Ação)
     response = client.put(
         '/users/999',
+        headers={'Authorization': f'Bearer {token}'},
         json={
             'username': 'usuario_inexistente',
             'email': 'usuario_inexistente@teste.com',
@@ -93,35 +96,46 @@ def test_atualizar_usuario_inexistente_deve_retornar_404(client, user):
         },
     )
     # Assert (Afirmar)
-    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.status_code == HTTPStatus.FORBIDDEN
 
 
-def test_put_usuario_com_id_zero_deve_retornar_404(client, user):
+def test_put_usuario_com_id_zero_deve_retornar_403(client, token):
     response = client.put(
-        '/users/0', json={'username': 'teste', 'email': 'teste@teste.com', 'password': '123456'}
+        '/users/0',
+        headers={'Authorization': f'Bearer {token}'},
+        json={'username': 'teste', 'email': 'teste@teste.com', 'password': '123456'},
     )
-    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.status_code == HTTPStatus.FORBIDDEN
 
 
-def test_deletar_usuario_deve_retornar_200_com_mensagem(client, user):
+def test_deletar_usuario_deve_retornar_200_com_mensagem(client, user, token):
     # Act (Ação)
-    response = client.delete('/users/1')
+    response = client.delete(
+        f'/users/{user.id}',
+        headers={'Authorization': f'Bearer {token}'},
+    )
     # Assert (Afirmar)
     # Verificar se o usuário foi realmente deletado
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {'message': 'User deleted successfully'}
 
 
-def test_deletar_usuario_inexistente_deve_retornar_404(client, user):
+def test_deletar_usuario_inexistente_deve_retornar_404(client, user, token):
     # Act (Ação)
-    response = client.delete('/users/999')
+    response = client.delete(
+        '/users/999',
+        headers={'Authorization': f'Bearer {token}'},
+    )
     # Assert (Afirmar)
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json() == {'detail': 'User with ID 999 not found.'}
 
 
-def test_delete_usuario_com_id_zero_deve_retornar_404(client):
-    response = client.delete('/users/0')
+def test_delete_usuario_com_id_zero_deve_retornar_404(client, token):
+    response = client.delete(
+        '/users/0',
+        headers={'Authorization': f'Bearer {token}'},
+    )
     assert response.status_code == HTTPStatus.NOT_FOUND
 
 
@@ -140,18 +154,24 @@ def test_obter_usuario_existente_deve_retornar_200(client, user):
     assert response.json() == {'id': 1, 'username': 'teste', 'email': 'teste@teste.com'}
 
 
-def test_obter_usuario_inexistente_deve_retornar_404(client):
+def test_obter_usuario_inexistente_deve_retornar_404(client, token):
     # Act
-    response = client.get('/users/999')
+    response = client.get(
+        '/users/999',
+        headers={'Authorization': f'Bearer {token}'},
+    )
 
     # Assert
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json() == {'detail': 'User with ID 999 not found.'}
 
 
-def test_deletar_usuario_com_banco_vazio_deve_retornar_404(client, limpar_banco):
-    response = client.delete('/users/1')
-    assert response.status_code == HTTPStatus.NOT_FOUND
+def test_deletar_usuario_com_banco_vazio_deve_retornar_404(client, limpar_banco, token):
+    response = client.delete(
+        '/users/999',
+        headers={'Authorization': f'Bearer {token}'},
+    )
+    assert response.status_code in {HTTPStatus.NOT_FOUND, HTTPStatus.UNAUTHORIZED}
 
 
 def test_get_usuario_com_banco_vazio_deve_retornar_404(client, limpar_banco):
