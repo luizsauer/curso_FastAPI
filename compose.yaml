@@ -1,0 +1,45 @@
+# compose.yaml
+version: "3.9"  # Boa prática indicar a versão da sintaxe do Compose
+
+services:
+  # Serviço de banco de dados PostgreSQL
+  fastzero_database:
+    image: postgres:latest  # Usa a imagem oficial mais recente do PostgreSQL
+    environment:
+      POSTGRES_USER: app_user           # Cria usuário do banco
+      POSTGRES_PASSWORD: app_password  # Define senha do banco
+      POSTGRES_DB: app_db              # Cria banco de dados com esse nome
+    ports:
+      - "5432:5432"  # Mapeia porta local 5432 para o banco (opcional, só se for acessar localmente)
+    volumes:
+      - fastzero_db_data:/var/lib/postgresql/data  # Volume persistente para dados do banco
+
+  # Serviço da aplicação FastAPI
+  fastzero_app:
+    # Define o contexto de build e o Dockerfile a ser usado
+    # O contexto é o diretório onde o Dockerfile está localizado
+    # O Dockerfile deve estar no mesmo diretório ou ser especificado corretamente
+    build:
+      context: .        # Diretório onde está o Dockerfile
+      dockerfile: Dockerfile  # Nome do Dockerfile (padrão, pode até omitir)
+    image: fastzero_app:latest  # Nome da imagem da aplicação (pode ser customizado)
+    container_name: fastzero_app  # Nome do container (opcional, mas útil para identificação)
+    restart: unless-stopped  # Reinicia o container automaticamente, a menos que seja parado manualmente
+    environment:
+      # String de conexão para o SQLAlchemy com o nome do serviço como host
+      DATABASE_URL: postgresql+psycopg://app_user:app_password@fastzero_database:5432/app_db
+      # Variáveis usadas para autenticação JWT
+      SECRET_KEY: your_secret_key
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+    ports:
+      - "8000:8000"  # Mapeia a porta local 8000 para o container da API
+    depends_on:
+      - fastzero_database  # Garante que o banco suba antes da app (não garante que o banco esteja pronto, só o container)
+    volumes:
+      - .:/app  # Mapeia o diretório local para dentro do container (útil em modo dev para auto reload)
+    # command: poetry run uvicorn fast_zero.app:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  fastzero_db_data:
+    driver: local  # Volume persistente local para os dados do banco

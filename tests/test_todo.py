@@ -4,7 +4,7 @@
 from http import HTTPStatus
 
 from fast_zero.models import TodoState
-from tests.conftest import TodoFactory
+from tests.conftest import TodoFactory, UserFactory
 
 
 def test_create_todo(client, token):
@@ -158,7 +158,12 @@ def test_delete_todo_not_found(client, token, session, user):
 
 
 def test_delete_todo_unauthorized(client, session):
-    todo = TodoFactory()
+    user = UserFactory()
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    todo = TodoFactory.build(user_id=user.id)
     session.add(todo)
     session.commit()
     session.refresh(todo)
@@ -173,7 +178,7 @@ def test_update_todo(client, token, session, user):
     session.add(todo)
     session.commit()
     session.refresh(todo)
-    
+
     updated_data = {
         'title': 'Updated Todo',
         'description': 'This is an updated todo item.',

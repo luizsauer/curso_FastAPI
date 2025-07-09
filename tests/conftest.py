@@ -3,8 +3,9 @@ import factory
 import factory.fuzzy
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import StaticPool, create_engine
+from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
+from testcontainers.postgres import PostgresContainer
 
 from fast_zero.app import app
 from fast_zero.database import get_session
@@ -29,7 +30,7 @@ class TodoFactory(factory.Factory):
     title = factory.Faker('text')
     description = factory.Faker('sentence')
     state = factory.fuzzy.FuzzyChoice(TodoState)  # Randomly choose a state from TodoState enum
-    user_id = 1  # Reference to the user ID
+    user_id = factory.LazyAttribute(lambda _: UserFactory().id)  # Reference to the user ID
 
 
 # Arrange (Organizar)
@@ -45,16 +46,27 @@ def client(session):
     app.dependency_overrides.clear()  # Clear overrides after the test
 
 
+@pytest.fixture(scope='session')
+def engine():
+    with PostgresContainer('postgres:latest', driver='psycopg') as postgres:
+        # Create a new SQLAlchemy engine using the database URL from the settings
+        _engine = create_engine(postgres.get_connection_url(), echo=True)
+        with _engine.begin():
+            yield _engine
+
+
 @pytest.fixture
-def session():
-    engine = create_engine(
-        'sqlite:///:memory:',
-        # Allow multiple threads to use the same connection
-        connect_args={'check_same_thread': False},
-        poolclass=StaticPool,
-        echo=True,
-    )
+def session(engine):
+    # * Create an in-memory SQLite database for testing
+    # engine = create_engine(
+    #     'sqlite:///:memory:',
+    #     # Allow multiple threads to use the same connection
+    #     connect_args={'check_same_thread': False},
+    #     poolclass=StaticPool,
+    #     echo=True,
+    # )
     # Create tables
+
     table_registry.metadata.create_all(engine)
 
     # Create a new session
