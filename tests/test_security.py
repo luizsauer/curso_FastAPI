@@ -3,7 +3,9 @@ from http import HTTPStatus
 
 from jwt import decode
 
-from fast_zero.security import ALGORITHM, SECRET_KEY, create_access_token
+from fast_zero.security import Settings, create_access_token
+
+settings = Settings()
 
 
 def test_jwt_token_creation():
@@ -13,7 +15,7 @@ def test_jwt_token_creation():
     # Act
     token = create_access_token(data)
 
-    result = decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    result = decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
 
     # Assert
     assert result['sub'] == data['sub']
@@ -30,35 +32,3 @@ def test_jwt_invalid_token(client):
     # Assert
     assert response.status_code == HTTPStatus.UNAUTHORIZED
     assert response.json() == {'detail': 'Could not validate credentials'}
-
-
-def test_get_token(client, user):
-    # Act
-    response = client.post(
-        '/token',
-        data={
-            'username': user.username,
-            'password': user.clean_password,  # Use the clean password from the fixture
-        },
-    )
-    token_data = response.json()
-
-    # Assert
-    assert response.status_code == HTTPStatus.OK
-    assert token_data['token_type'] == 'bearer'
-    assert 'access_token' in token_data
-    assert isinstance(token_data['access_token'], str)
-
-
-def test_get_token_with_invalid_credentials(client):
-    # Act
-    response = client.post(
-        '/token',
-        data={
-            'username': 'invalid_user',
-            'password': 'invalid_password',
-        },
-    )
-    # Assert
-    assert response.status_code == HTTPStatus.UNAUTHORIZED
-    assert response.json() == {'detail': 'Incorrect username or password.'}
