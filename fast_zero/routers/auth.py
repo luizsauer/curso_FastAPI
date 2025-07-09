@@ -12,6 +12,7 @@ from fast_zero.models import User
 from fast_zero.schemas import Token
 from fast_zero.security import (
     create_access_token,
+    get_current_user,
     verify_password,
 )
 
@@ -34,6 +35,19 @@ def login_for_access_token(session: T_Session, form_data: T_OAuth2Form):
             status_code=HTTPStatus.UNAUTHORIZED, detail='Incorrect username or password.'
         )
 
+    access_token = create_access_token(data={'sub': user.username})
+    if not access_token:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail='Could not create access token.'
+        )
+
+    return {'access_token': access_token, 'token_type': 'bearer'}
+
+
+@router.post('/refresh_token', response_model=Token, status_code=HTTPStatus.OK)
+def refresh_token(
+    user: User = Depends(get_current_user),
+):
     access_token = create_access_token(data={'sub': user.username})
     if not access_token:
         raise HTTPException(

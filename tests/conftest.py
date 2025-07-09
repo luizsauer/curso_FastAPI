@@ -1,4 +1,5 @@
 # tests\conftest.py
+import factory
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import StaticPool, create_engine
@@ -50,13 +51,26 @@ def user(session):
     plain_password = '123456'
     pwd = get_password_hash(plain_password)
     # Create a test user
-    test_user = User(username='teste', email='teste@teste.com', password=pwd)
+    test_user = UserFactory(
+        password=pwd,
+    )
 
     session.add(test_user)
     session.commit()
     session.refresh(test_user)  # Refresh to get the updated user with ID
 
     test_user.clean_password = plain_password  # monkey patching para evitar hash de senha em testes
+    return test_user
+
+
+@pytest.fixture
+def other_user(session):
+    test_user = UserFactory()
+
+    session.add(test_user)
+    session.commit()
+    session.refresh(test_user)
+
     return test_user
 
 
@@ -77,3 +91,13 @@ def token(client, user):
     )
     token = response.json()['access_token']
     return token
+
+
+# Fabrica de de usuários para testes
+class UserFactory(factory.Factory):
+    class Meta:
+        model = User
+
+    username = factory.Sequence(lambda n: f'user{n}')  # Unique username for each user
+    email = factory.LazyAttribute(lambda obj: f'{obj.username}@example.com')
+    password = factory.LazyAttribute(lambda _: get_password_hash('password123'))

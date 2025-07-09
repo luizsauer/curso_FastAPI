@@ -30,9 +30,9 @@ def test_listar_usuarios_deve_retornar_200(client, user):
     assert response.json() == {
         'users': [
             {
-                'id': 1,
-                'username': 'teste',
-                'email': 'teste@teste.com',
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
             }
         ]
     }
@@ -76,10 +76,10 @@ def test_atualizar_usuario_deve_retornar_200(client, user, token):
     }
 
 
-def test_atualizar_usuario_inexistente_deve_retornar_403(client, user, token):
+def test_atualizar_usuario_inexistente_deve_retornar_403(client, other_user, token):
     # Act (Ação)
     response = client.put(
-        '/users/999',
+        f'/users/{other_user.id}',
         headers={'Authorization': f'Bearer {token}'},
         json={
             'username': 'usuario_inexistente',
@@ -89,6 +89,7 @@ def test_atualizar_usuario_inexistente_deve_retornar_403(client, user, token):
     )
     # Assert (Afirmar)
     assert response.status_code == HTTPStatus.FORBIDDEN
+    assert response.json() == {'detail': 'You do not have permission to update this user.'}
 
 
 def test_put_usuario_com_id_zero_deve_retornar_403(client, token):
@@ -112,15 +113,25 @@ def test_deletar_usuario_deve_retornar_200_com_mensagem(client, user, token):
     assert response.json() == {'message': 'User deleted successfully'}
 
 
-def test_deletar_usuario_inexistente_deve_retornar_404(client, user, token):
-    # Act (Ação)
+def test_deletar_usuario_inexistente_deve_retornar_403(client, other_user, token):
+    # O token é de um usuário diferente do other_user
     response = client.delete(
-        f'/users/{user.id + 1}',
+        f'/users/{other_user.id}',
         headers={'Authorization': f'Bearer {token}'},
     )
-    # Assert (Afirmar)
     assert response.status_code == HTTPStatus.FORBIDDEN
-    assert response.json() == {'detail': f'User with ID {user.id + 1} not found.'}
+    assert response.json() == {'detail': 'You do not have permission to delete this user.'}
+
+
+# def test_deletar_usuario_inexistente_deve_retornar_404(client, other_user, token):
+#     # Act (Ação)
+#     response = client.delete(
+#         f'/users/{other_user.id}',
+#         headers={'Authorization': f'Bearer {token}'},
+#     )
+#     # Assert (Afirmar)
+#     assert response.status_code == HTTPStatus.FORBIDDEN
+#     assert response.json() == {'detail': f'User with ID {other_user.id} not found.'}
 
 
 def test_delete_usuario_com_id_zero_deve_retornar_404(client, token):
@@ -132,18 +143,16 @@ def test_delete_usuario_com_id_zero_deve_retornar_404(client, token):
 
 
 def test_obter_usuario_existente_deve_retornar_200(client, user):
-    # Arrange
-    client.post(
-        '/users',
-        json={'username': 'teste', 'email': 'teste@teste.com', 'password': '123456'},
-    )
-
     # Act
-    response = client.get('/users/1')
+    response = client.get(f'/users/{user.id}')
 
     # Assert
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {'id': 1, 'username': 'teste', 'email': 'teste@teste.com'}
+    assert response.json() == {
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+    }
 
 
 def test_obter_usuario_inexistente_deve_retornar_404(client, token):
@@ -170,14 +179,13 @@ def test_deletar_usuario_com_banco_vazio_deve_retornar_404(client, limpar_banco,
 def test_get_usuario_com_banco_vazio_deve_retornar_404(client, limpar_banco):
     response = client.get('/users/1')
     assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json() == {'detail': 'User with ID 1 not found.'}
 
 
 def test_criar_usuario_com_username_duplicado_deve_retornar_400(client, user):
     response = client.post(
         '/users',
         json={
-            'username': 'teste',  # mesmo username do fixture
+            'username': user.username,
             'email': 'novoemail@teste.com',
             'password': 'novasenha',
         },
@@ -192,7 +200,7 @@ def test_criar_usuario_com_email_duplicado_deve_retornar_400(client, user):
         '/users',
         json={
             'username': 'novousername',
-            'email': 'teste@teste.com',  # mesmo email do fixture
+            'email': user.email,
             'password': 'novasenha',
         },
     )

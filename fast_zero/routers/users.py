@@ -111,7 +111,11 @@ def delete_user(user_id: int, session: T_Session, current_user: T_CurrentUser):
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail=f'User with ID {user_id} not found.'
         )
-
+    if current_user.id != user_id:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail='You do not have permission to delete this user.',
+        )
     session.delete(db_user)
     session.commit()
 
